@@ -24,11 +24,11 @@ We want to ease their work by automatically extracting informations from the voc
 
 Here is an example of a memo
 
-/readme_pictures/exemple.png
+![memo example](/readme_pictures/exemple.png)
 
 And here is the corresponding informations we need to extract
 
-/readme_pictures/exemple_infos.png
+![memo infos example](/readme_pictures/exemple_infos.png)
 
 # Our approach
 
