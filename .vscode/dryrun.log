@@ -1,0 +1,4 @@
+make: Entering directory '/home/julianb/code/GeoffroyGit/ephesus'
+pip install -r requirements.txt
+make: Leaving directory '/home/julianb/code/GeoffroyGit/ephesus'
+ 
