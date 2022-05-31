@@ -24,7 +24,7 @@ def get_dates(pd_dataframe):
     # add number of dates detected for simplicity
     df["date_words_len"] = df["date_words"].map(len)
     # return a dataframe
-    return df
+    return df.drop(columns="camembert")
 
 if __name__ == '__main__':
     # get data
