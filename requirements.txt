@@ -34,6 +34,3 @@ termcolor
 pylint
 ipdb
 jupyterlab
-
-os
-json
