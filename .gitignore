@@ -10,3 +10,4 @@ raw_data/
 *.ipynb_*
 
 **/.vscode/*
+*.joblib
