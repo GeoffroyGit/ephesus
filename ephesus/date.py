@@ -65,6 +65,70 @@ def get_dates_targets(pd_dataframe):
     # return a dataframe
     return df.drop(columns="CareBeginDate_fix")
 
+def evaluate_date(pd_dataframe_X, pd_dataframe_y):
+    '''
+    '''
+    df_X = pd_dataframe_X.copy()
+    df_y = pd_dataframe_y.copy()
+    # clean filename for merge
+    def clean_filename(filename):
+        return filename[:-17] if "translation.json" in filename else filename[:-16]
+    df_X["filename_cleaned"] = df_X["fichier"].apply(clean_filename)
+    df_y["filename_cleaned"] = df_y["fichier"].apply(clean_filename)
+    # merge
+    df = df_X.merge(df_y, how="left", on="filename_cleaned")
+
+    # calculate score
+    df_score = df[["filename_cleaned", "date_words"]].copy()
+
+    df_score["score_day_format01"] = df.apply(lambda x: x["CareBeginDate_day_format01"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_day_format02"] = df.apply(lambda x: x["CareBeginDate_day_format02"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_day_format03"] = df.apply(lambda x: x["CareBeginDate_day_format03"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_month_format01"] = df.apply(lambda x: x["CareBeginDate_month_format01"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_month_format02"] = df.apply(lambda x: x["CareBeginDate_month_format02"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_month_format03"] = df.apply(lambda x: x["CareBeginDate_month_format03"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_year_format01"] = df.apply(lambda x: x["CareBeginDate_year_format01"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_year_format02"] = df.apply(lambda x: x["CareBeginDate_year_format02"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_hour_format01"] = df.apply(lambda x: x["CareBeginDate_hour_format01"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_hour_format02"] = df.apply(lambda x: x["CareBeginDate_hour_format02"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_hour_format03"] = df.apply(lambda x: x["CareBeginDate_hour_format03"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_hour_format04"] = df.apply(lambda x: x["CareBeginDate_hour_format04"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_hour_format05"] = df.apply(lambda x: x["CareBeginDate_hour_format05"] in " ".join(x["date_words"]), axis=1)
+    df_score["score_hour_format06"] = df.apply(lambda x: x["CareBeginDate_hour_format06"] in " ".join(x["date_words"]), axis=1)
+
+    df_score["score_day"] = \
+        df_score["score_day_format01"] | \
+        df_score["score_day_format02"] | \
+        df_score["score_day_format03"]
+
+    df_score["score_month"] = \
+        df_score["score_month_format01"] | \
+        df_score["score_month_format02"] | \
+        df_score["score_month_format03"]
+
+    df_score["score_month"] = \
+        df_score["score_month_format01"] | \
+        df_score["score_month_format02"] | \
+        df_score["score_month_format03"]
+
+    df_score["score_year"] = \
+        df_score["score_year_format01"] | \
+        df_score["score_year_format02"]
+
+    df_score["score_hour"] = \
+        df_score["score_hour_format01"] | \
+        df_score["score_hour_format02"] | \
+        df_score["score_hour_format03"] | \
+        df_score["score_hour_format04"] | \
+        df_score["score_hour_format05"] | \
+        df_score["score_hour_format06"]
+
+    df_score["score"] = (df_score["score_day"].astype(int) + df_score["score_month"].astype(int) + \
+                         df_score["score_year"].astype(int) + df_score["score_hour"].astype(int) ) / 4
+
+    # return a dataframe
+    return df_score[["filename_cleaned", "score"]]
+
 if __name__ == '__main__':
     # test get_dates function
     df = get_data_json()
@@ -77,3 +141,7 @@ if __name__ == '__main__':
     df = get_data_targets_json()
     df = get_dates_targets(df)
     print(f"shape of df: {df.shape}")
+    # test evaluate_date
+    df = evaluate_date(df_sample, df)
+    score = df["score"].mean()
+    print(f"score: {score}")
