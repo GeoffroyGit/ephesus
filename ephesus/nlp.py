@@ -41,15 +41,16 @@ class TrainerNGAP():
         self.X_test = None
         self.y_train = None
         self.y_test = None
+        self.ycols = None
 
-    def apply_tokenizer(X):
+    def apply_tokenizer(self, X):
         # apply the tokenization on the train set
         X_token = self.tokenizer.texts_to_sequences(X)
         # pad the sequences
         X_pad = pad_sequences(X_token, dtype='float32', padding='post', value=0, maxlen=16)
         return X_pad
 
-    def train_ngap():
+    def train_ngap(self):
         '''
         This is a draft of a function to train a model to recognise the NGAP code
         '''
@@ -78,6 +79,7 @@ class TrainerNGAP():
             y["_unknown_"] += y[code]
         y["_unknown_"] = (~ y["_unknown_"].astype(bool)).astype(int)
         y.drop(columns="y", inplace=True)
+        self.ycols = y.columns
         # train test split
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.33)
         # create tokenizer and fit it on the train set
@@ -103,7 +105,7 @@ class TrainerNGAP():
         es = EarlyStopping(patience=5, restore_best_weights=True)
         self.model.fit(X_train_pad, self.y_train, batch_size=8, epochs=50, validation_split=0.3, callbacks=[es])
 
-    def eval_ngap():
+    def eval_ngap(self):
         '''
         evaluate the model
         '''
@@ -117,7 +119,7 @@ class TrainerNGAP():
         score = self.model.evaluate(X_test_pad, y_pred)
         return score[1]
 
-    def predict_ngap(X_test):
+    def predict_ngap(self):
         '''
         use the model to make predictions
         '''
@@ -127,10 +129,38 @@ class TrainerNGAP():
         y_pred = self.model.predict(X_test_pad)
         # reshape y_pred to a more readable format
         df_pred = pd.DataFrame(y_pred)
-        df_pred.columns = y.columns
+        df_pred.columns = self.ycols
         df_pred = pd.DataFrame(df_pred.stack()).reset_index()
         df_pred = df_pred.sort_values(0).groupby("level_0").last()
-        df_pred_clean = pd.DataFrame(X_test).reset_index().drop(columns="index")
+        df_pred_clean = pd.DataFrame(self.X_test).reset_index().drop(columns="index")
         df_pred_clean["NGAP"] = df_pred["level_1"]
         df_pred_clean["softmax"] = df_pred[0]
         return df_pred_clean
+
+if __name__ == '__main__':
+    df = pd.DataFrame({
+        "X" : ["prise de sang",
+          "test PCR covid-19",
+          "Vaccin",
+          "Prise de sang",
+          "Pansement lourd",
+          "refaire les fils",
+          "pansement d'amputation",
+          "vaccins",
+          "gros pensement"],
+        "y" : ["PSG",
+          "PC19",
+          "PVAG",
+          "PSG",
+          "PSTA",
+          "",
+          "toto",
+          "PVAG",
+          "PSTA"]
+    })
+    X = df[["X"]]
+    y = df[["y"]]
+    trainer = TrainerNGAP(X, y)
+    score = trainer.eval_ngap()
+    print(f"model evaluation: {score}")
+    print(trainer.predict_ngap())
