@@ -10,32 +10,22 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras import layers, Sequential
 from tensorflow.keras.callbacks import EarlyStopping
 
+from ephesus.sentence import load_model, return_label
+from ephesus.data import get_data_json, get_data_targets_json
+
 
 class TrainerNGAP():
-    def __init__(self, X, y,
-                 list_of_NGAP_codes = \
+    def __init__(self, list_of_NGAP_codes = \
                     ['PSG','PV19','TAID19','PSTA','PC19','TAIC19','SC',
                     'PVAG','IM','ABFM','PLVA','NUR1','PSTL','ADM2','CSC',
                     'ADM1', 'OBSD', 'ISCI']
                  ):
         '''
-        X: pandas DataFrame with one column named "X"
-        y: pandas DataFrame with one column named "y"
-
-        For exemple:
-        df = pd.DataFrame({
-            "X" : ["prise de sang",
-                "test PCR covid-19",
-                "Vaccin"
-                "Pansement lourd"],
-            "y" : ["PSG", "PC19", "", "PSTA"]
-        })
-        X = df[["X"]]
-        y = df[["y"]]
+        store list_of_NGAP_codes as a class attribute
         '''
-        self.X = X
-        self.y = y
         self.list_of_NGAP_codes = list_of_NGAP_codes
+        self.X = None # pandas DataFrame with one column named "X"
+        self.y = None # pandas DataFrame with one column named "y"
         self.tokenizer = None
         self.model = None
         self.X_train = None
@@ -44,11 +34,54 @@ class TrainerNGAP():
         self.y_test = None
         self.ycols = None
 
-    def apply_tokenizer(self, X):
-        # apply the tokenization on the train set
+    def get_training_data(self, path):
+        '''
+        path is the path to the spaCy model that extracts treatments from sentences
+        path is a string like "../models/model_v1/model-best"
+        '''
+
+        # load the training data for X
+        # load the pre-trained spacy model
+        model = load_model(path)
+        # load the training data
+        df = get_data_json()
+        # run the model predictions on the data
+        df["entities"] = df["translation"].apply(lambda x: return_label(x, model))
+        # only keep the treatments
+        def keep_treatment_only(entities):
+            return [entity[0] for entity in entities if entity[1] == "Treatment"]
+        df["treatments"] = df["entities"].apply(keep_treatment_only)
+        df_split = pd.DataFrame(df["treatments"].to_list())
+        df_split["filename"] = df["fichier"]
+        df_stack = pd.DataFrame(df_split.set_index("filename").stack())\
+            .reset_index().rename(columns={0 : "treatment"})
+
+        # load the training data for y
+        # load targets
+        df_targets = get_data_targets_json()[["fichier", "NGAP_1"]]
+        # clean filename for merge with df_stack
+        def clean_filename(filename):
+            return filename[:-17] if "translation.json" in filename else filename[:-16]
+        df_stack["filename_cleaned"] = df_stack["filename"].apply(clean_filename)
+        df_targets["filename_cleaned"] = df_targets["fichier"].apply(clean_filename)
+        # merge with df_stack
+        df = df_stack.merge(df_targets, how="left", on="filename_cleaned")
+        df = df[["treatment", "NGAP_1"]].rename(columns={"treatment" : "X", "NGAP_1" : "y"})
+
+        # store the training data into self.X and self.y
+        self.X = df[["X"]]
+        self.y = df[["y"]]
+
+    def apply_tokenizer(self, X, maxlen=16):
+        '''
+        apply a previously fitted tokenizer
+        and padd the sequences
+        '''
+        # apply the tokenization
         X_token = self.tokenizer.texts_to_sequences(X)
-        # pad the sequences
-        X_pad = pad_sequences(X_token, dtype='float32', padding='post', value=0, maxlen=16)
+        # pad the sequences with zeros
+        X_pad = pad_sequences(X_token, dtype='float32', padding='post', value=0, maxlen=maxlen)
+        # return padded sequences
         return X_pad
 
     def train_ngap(self):
@@ -111,14 +144,10 @@ class TrainerNGAP():
         '''
         evaluate the model
         '''
-        # train the model
-        self.train_ngap()
         # apply the tokenization on the test set and pad the test set
         X_test_pad = self.apply_tokenizer(self.X_test)
-        # use the trained model to make predictions
-        y_pred = self.model.predict(X_test_pad)
         # evaluate the model
-        score = self.model.evaluate(X_test_pad, y_pred)
+        score = self.model.evaluate(X_test_pad, self.y_test)
         return score[1]
 
     def predict_ngap(self):
@@ -140,29 +169,14 @@ class TrainerNGAP():
         return df_pred_clean
 
 if __name__ == '__main__':
-    df = pd.DataFrame({
-        "X" : ["prise de sang",
-          "test PCR covid-19",
-          "Vaccin",
-          "Prise de sang",
-          "Pansement lourd",
-          "refaire les fils",
-          "pansement d'amputation",
-          "vaccins",
-          "gros pensement"],
-        "y" : ["PSG",
-          "PC19",
-          "PVAG",
-          "PSG",
-          "PSTA",
-          "",
-          "toto",
-          "PVAG",
-          "PSTA"]
-    })
-    X = df[["X"]]
-    y = df[["y"]]
-    trainer = TrainerNGAP(X, y)
+    trainer = TrainerNGAP()
+    print("Load data:")
+    path = "../models/model_v2/model-best"
+    trainer.get_training_data(path)
+    print("Train:")
+    trainer.train_ngap()
+    print("Eval:")
     score = trainer.eval_ngap()
     print(f"model evaluation: {score}")
-    print(trainer.predict_ngap())
+    print("Predict:")
+    print(trainer.predict_ngap().head())
