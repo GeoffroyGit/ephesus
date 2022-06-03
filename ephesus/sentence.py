@@ -89,6 +89,13 @@ def create_training_data(train_set, filename):
         doc_bin.to_disk(f"../raw_data/{filename}")
     print(f"training data created under '../raw_data/{filename}'")
 
+def load_model(model_path):
+    '''
+    model_path is a string like "../models/model_v1/model-best"
+    '''
+    nlp = spacy.load(model_path)
+    return nlp
+
 def return_label(sentence, model):
     '''
     return a list of tuple with (text, label)
