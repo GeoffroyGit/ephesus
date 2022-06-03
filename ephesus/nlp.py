@@ -14,8 +14,9 @@ from tensorflow.keras.callbacks import EarlyStopping
 class TrainerNGAP():
     def __init__(self, X, y,
                  list_of_NGAP_codes = \
-                    ['PSG','PV19','TAID19','PSTA','PC19','TAIC19','SC',\
-                    'PVAG','IM','ABFM','PLVA','NUR1','PSTL','ADM2','CSC']
+                    ['PSG','PV19','TAID19','PSTA','PC19','TAIC19','SC',
+                    'PVAG','IM','ABFM','PLVA','NUR1','PSTL','ADM2','CSC',
+                    'ADM1', 'OBSD', 'ISCI']
                  ):
         '''
         X: pandas DataFrame with one column named "X"
@@ -90,6 +91,7 @@ class TrainerNGAP():
         # create the model
         vocab_size = len(self.tokenizer.word_index) + 1 # +1 for the 0 padding
         sequence_size = len(X_train_pad[0])
+        nb_of_categories = len(self.list_of_NGAP_codes) + 1 # +1 for the _unknown_ category
         self.model = Sequential()
         self.model.add(layers.Embedding(
             input_dim=vocab_size,
@@ -99,7 +101,7 @@ class TrainerNGAP():
         ))
         self.model.add(layers.SimpleRNN(50))
         self.model.add(layers.Dense(32))
-        self.model.add(layers.Dense(16, activation="softmax"))
+        self.model.add(layers.Dense(nb_of_categories, activation="softmax"))
         self.model.compile(loss="categorical_crossentropy", optimizer="rmsprop", metrics=["accuracy"])
         # configure early stopping and run the model
         es = EarlyStopping(patience=5, restore_best_weights=True)
