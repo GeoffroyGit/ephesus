@@ -119,5 +119,12 @@ python -m spacy init fill-config base_config.cfg config.cfg
 python -m spacy train config.cfg --output ../ --paths.train ../../raw_data/training_data.spacy --paths.dev ../../raw_da
 ta/training_data.spacy
 '''
+
+###evaluate model
+'''
+python -m spacy evaluate ../model_small/model-best ../../raw_data/test_set.spacy -dp ../model_small/EVAL -o ../model_small/EVAL/model_small.json
+'''
+
+
 if __name__ == '__main__':
     print("Ca marhce po")
