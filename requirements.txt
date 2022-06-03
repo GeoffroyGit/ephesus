@@ -13,6 +13,7 @@ seaborn
 gensim
 tensorflow
 nltk
+spacy
 
 # tests/linter
 black
