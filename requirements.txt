@@ -10,6 +10,9 @@ pandas
 scikit-learn
 matplotlib
 seaborn
+gensim
+tensorflow
+nltk
 
 # tests/linter
 black
