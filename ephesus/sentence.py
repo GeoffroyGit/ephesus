@@ -89,7 +89,7 @@ def create_training_data(train_set, filename):
         doc_bin.to_disk(f"../raw_data/{filename}")
     print(f"training data created under '../raw_data/{filename}'")
 
-### Commands to train model ###
+### Commands to train model --> to lauch in config file###
 
 ###to fill default parameters
 '''
@@ -97,7 +97,8 @@ python -m spacy init fill-config base_config.cfg config.cfg
 '''
 ###train the model
 '''
-python -m spacy train config.cfg --output ./ --paths.train ./training_data.spacy --paths.dev ./training_data.spacy
+python -m spacy train config.cfg --output ../ --paths.train ../../raw_data/training_data.spacy --paths.dev ../../raw_da
+ta/training_data.spacy
 '''
 if __name__ == '__main__':
     print("Ca marhce po")
