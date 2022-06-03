@@ -68,7 +68,7 @@ def create_training_set(dico, size=0.8):
 def create_training_data(train_set, filename):
     '''
     create training data and saved in raw_data
-    please specifiy name which ends with ".spacy"
+    please specifiy name which should ends with ".spacy"
     '''
     nlp = spacy.blank("fr")
     doc_bin = DocBin()
@@ -88,6 +88,18 @@ def create_training_data(train_set, filename):
         doc_bin.add(doc)
         doc_bin.to_disk(f"../raw_data/{filename}")
     print(f"training data created under '../raw_data/{filename}'")
+
+def return_label(sentence, model):
+    '''
+    return a list of tuple with (text, label)
+    needs to take a spacy.model as input
+    '''
+    liste = []
+    doc = model(sentence)
+    for index, ent in enumerate(doc.ents):
+        liste.append((str(doc.ents[index]), ent.label_))
+    return liste
+
 
 ### Commands to train model --> to lauch in config file###
 
