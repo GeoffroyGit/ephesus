@@ -171,7 +171,7 @@ class TrainerNGAP():
 
         if self.train_on_full_set:
             # save the model to a joblib file
-            joblib.dump(self.model, self.path_ngap)
+            joblib.dump((self.model, self.tokenizer, self.ycols), self.path_ngap)
 
 
     def eval_ngap(self):
@@ -191,16 +191,21 @@ class TrainerNGAP():
 
     def predict_ngap(self, sentence=""):
         '''
-        use the model to make predictions
+        Use the model to make predictions
+        sentence is one or multiple treatments
+        sentence can be a string or a pandas dataframe with a column "X"
         '''
         if self.train_on_full_set:
             # load the model from the joblib file
             try:
-                self.model = joblib.load(self.path_ngap)
+                (self.model, self.tokenizer, self.ycols) = joblib.load(self.path_ngap)
             except FileNotFoundError:
                 return pd.DataFrame()
             # preprocessing
-            X = pd.DataFrame({"X" : [sentence]})
+            if type(sentence) == str:
+                X = pd.DataFrame({"X" : [sentence]})
+            else:
+                X = sentence[["X"]].copy()
             X["X"] = X["X"].apply(str.lower)
             X["X"] = X["X"].apply(lambda x: ''.join(word for word in x if not word.isdigit()))
             X["X"] = X["X"].apply(self.remove_punctuation)
@@ -239,6 +244,7 @@ if __name__ == '__main__':
 
     test_evaluation = True
     test_predict = True
+    test_load_model = True
 
     if test_evaluation:
         # create trainer for evaluation
@@ -262,5 +268,18 @@ if __name__ == '__main__':
         print("Train:")
         trainer.train_ngap()
         print("Predict:")
-        sentence = "Prise de sang réalisée ce jour au cabinet"
+        sentence = "Prise de sang"
+        print(trainer.predict_ngap(sentence=sentence))
+    if test_predict or test_load_model:
+        # create a new trainer for precitions
+        print("Create new trainer for predictions:")
+        trainer = TrainerNGAP(train_on_full_set = True, path_spacy=path_spacy, path_ngap=path_ngap)
+        print("Predict one treatment:")
+        sentence = "Grand pansement"
+        print(trainer.predict_ngap(sentence=sentence))
+        print("Predict multiple treatments at once:")
+        sentence = pd.DataFrame({"X" : ["Grand pansement",
+                                        "Prise de sang",
+                                        "Vaccin Covid19",
+                                        "Test PCR"]})
         print(trainer.predict_ngap(sentence=sentence))
