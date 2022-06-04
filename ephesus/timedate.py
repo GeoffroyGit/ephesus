@@ -1,6 +1,7 @@
 from unicodedata import digit
 import pandas as pd
 import string
+import time
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from ephesus.sentence import load_model, return_label
@@ -233,6 +234,7 @@ class Date():
         df["data"] = df["data"].apply(self.remove_stop_words)
         df["data"] = df["data"].apply(self.force_digits_only)
         df["data"] = df["data"].apply(self.text_to_digit)
+
         # store the first 3 digit tokens with the year at the end if obvious
         df["digit_tokens"] = df["data"].apply(self.get_3_digit_token)
         # we assume that the first digit token is the day
@@ -251,30 +253,190 @@ class Date():
         # the day could also be in plain text like "ce jour"
         df["day_of_week"] = df["data"].apply(self.day_of_week)
         df["day_from_today"] = df["data"].apply(self.day_from_today)
+
         # return df
         return df.drop(columns="digit_tokens")
+
+class Time():
+    def __init__(self, path_spacy=""):
+        '''
+        store path_spacy in self
+        '''
+        self.path_spacy = path_spacy
+        self.df = None
+        self.df_exists = False
+
+    def get_data(self):
+        '''
+        path_spacy is the path to the spaCy model that extracts times from sentences
+        path_spacy is a string like "../models/model_v1/model-best"
+        '''
+
+        # load the pre-trained spacy model
+        model = load_model(self.path_spacy)
+        # load the training data
+        df = get_data_json()
+        # run the model predictions on the data
+        df["entities"] = df["translation"].apply(lambda x: return_label(x, model))
+        # only keep the times
+        def keep_time_only(entities):
+            return [entity[0] for entity in entities if entity[1] == "Time"]
+        df["times"] = df["entities"].apply(keep_time_only)
+        df_split = pd.DataFrame(df["times"].to_list())
+        df_split["filename"] = df["fichier"]
+        df_stack = pd.DataFrame(df_split.set_index("filename").stack())\
+            .reset_index().rename(columns={0 : "time"})
+
+        # store the times in self.df
+        self.df = df_stack[["filename", "time"]]
+        self.df_exists = True
+
+    def remove_punctuation(self, text):
+        '''
+        preprocessing : remove punctuation
+        '''
+        for punctuation in string.punctuation:
+            text = text.replace(punctuation, ' ')
+        return text
+
+    def remove_stop_words(self, tokens):
+        '''
+        preprocessing : remove stop words
+        '''
+        stop_words = set(stopwords.words('french'))
+        return [token for token in tokens if token not in stop_words]
+
+    def get_std_time(self, tokens):
+        '''
+        guess time from multiple time formats
+        return a tuple (hour, minute)
+        '''
+        # we try the following formats
+        time_formats = ["%Hh%M", "%Hh", "%H"]
+        hour, minute = 99, 99
+        for token in tokens:
+            correct_format_found = False
+            hour_min = False
+            for time_format in time_formats:
+                try:
+                    hour_min = time.strptime(token, time_format)
+                    correct_format_found = True
+                except ValueError:
+                    correct_format_found = False
+            if hour_min:
+                if hour == 99:
+                    hour = hour_min.tm_hour
+                    minute = hour_min.tm_min
+        return hour, minute
+
+    def get_plain_text_time(self, tokens):
+        '''
+        guess time from plain text like "midi"
+        return a tuple (hour, minute)
+        '''
+        hour, minute = 99, 99
+        dic_hour = {
+            "midi" : 12,
+            "minuit" : 0
+        }
+        dic_min = {
+            "demi" : 30,
+            "quart" : 15
+        }
+        for text in dic_hour.keys():
+            if text in tokens:
+                hour = dic_hour[text]
+                break
+        for text in dic_min.keys():
+            if text in tokens:
+                minute = dic_min[text]
+                break
+        return hour, minute
+
+    def transform_data(self, sentence=""):
+        '''
+        transform groups of words like "18h" or "18h00" into times
+        sentence is one or multiple times
+        sentence can be a string or a pandas dataframe with a column "X"
+        '''
+
+        if len(sentence) == 0:
+            # if sentence is not provided, make transformations from self.df
+            if not self.df_exists:
+                return pd.DataFrame()
+            df = self.df[["time"]].copy().rename(columns={"time" : "data"})
+        else:
+            # if sentence is provided, transform the time in sentence
+            if type(sentence) == str:
+                df = pd.DataFrame({"data" : [sentence]})
+            else:
+                df = sentence[["X"]].copy().rename(columns={"X" : "data"})
+
+        # preprocess the words
+        df["data"] = df["data"].apply(str.lower)
+        df["data"] = df["data"].apply(self.remove_punctuation)
+        df["data"] = df["data"].apply(word_tokenize)
+        df["data"] = df["data"].apply(self.remove_stop_words)
+
+        # get time if it's in a standard format
+        df["time"] = df["data"].apply(self.get_std_time)
+        # if we didn't find the time we try plain text like "midi"
+        mask = df["time"] == (99, 99)
+        df_temp = df[["data"]][mask].copy()
+        df_temp["time"] = df["data"].apply(self.get_plain_text_time)
+        df_temp.drop(columns="data", inplace=True)
+        df.update(df_temp)
+
+        # return df
+        return df
 
 
 if __name__ == '__main__':
 
+    test_date = True
+    test_time = True
     test_load_too = False
 
-    if test_load_too:
-        path_spacy = "../models/model_v2/model-best"
-        test = Date(path_spacy=path_spacy)
-        test.get_data()
-        print(test.transform_data())
-    else:
-        # test one date
-        sentence = "2 septembre 2022"
-        print("Transform one date")
-        test = Date()
-        print(test.transform_data(sentence=sentence))
-        # test multiple dates
-        sentence = pd.DataFrame({"X" : ["2 septembre 2022",
-                                        "30 juillet",
-                                        "ce jour",
-                                        "demain"]})
-        print("Transform multiple dates")
-        test = Date()
-        print(test.transform_data(sentence=sentence))
+    if test_date:
+        if test_load_too:
+            path_spacy = "../models/model_v2/model-best"
+            test = Date(path_spacy=path_spacy)
+            test.get_data()
+            print(test.transform_data())
+        else:
+            # test one date
+            sentence = "2 septembre 2022"
+            print("Transform one date")
+            test = Date()
+            print(test.transform_data(sentence=sentence))
+            # test multiple dates
+            sentence = pd.DataFrame({"X" : ["2 septembre 2022",
+                                            "30 juillet",
+                                            "ce jour",
+                                            "demain"]})
+            print("Transform multiple dates")
+            test = Date()
+            print(test.transform_data(sentence=sentence))
+
+    if test_time:
+        if test_load_too:
+            path_spacy = "../models/model_v2/model-best"
+            test = Time(path_spacy=path_spacy)
+            test.get_data()
+            print(test.transform_data())
+        else:
+            # test one time
+            sentence = "18h00"
+            print("Transform one time")
+            test = Time()
+            print(test.transform_data(sentence=sentence))
+            # test multiple dates
+            sentence = pd.DataFrame({"X" : ["18h00",
+                                            "17h",
+                                            "6H05",
+                                            "minuit et demi",
+                                            "midi et quart",
+                                            "12 heure moins le quart"]})
+            print("Transform multiple times")
+            test = Time()
+            print(test.transform_data(sentence=sentence))
