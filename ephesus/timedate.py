@@ -244,10 +244,11 @@ class Date():
         # if we didn't find a month in plain text, we assume the month is the 2nd digit token
         mask = df["month"] == 99
         df_temp = df[["digit_tokens"]][mask].copy()
-        df_temp["month"] = pd.to_numeric(df_temp["digit_tokens"].apply(self.get_n_digit_token, args=(2,)))
-        df_temp.drop(columns="digit_tokens", inplace=True)
-        df.update(df_temp)
-        df["month"] = df["month"].astype(int)
+        if df_temp.shape[0] > 0:
+            df_temp["month"] = pd.to_numeric(df_temp["digit_tokens"].apply(self.get_n_digit_token, args=(2,)))
+            df_temp.drop(columns="digit_tokens", inplace=True)
+            df.update(df_temp)
+            df["month"] = df["month"].astype(int)
         # we assume the 3rd digit token is the year
         df["year"] = pd.to_numeric(df["digit_tokens"].apply(self.get_n_digit_token, args=(3,)))
         # the day could also be in plain text like "ce jour"
@@ -383,9 +384,10 @@ class Time():
         # if we didn't find the time we try plain text like "midi"
         mask = df["time"] == (99, 99)
         df_temp = df[["data"]][mask].copy()
-        df_temp["time"] = df["data"].apply(self.get_plain_text_time)
-        df_temp.drop(columns="data", inplace=True)
-        df.update(df_temp)
+        if df_temp.shape[0] > 0:
+            df_temp["time"] = df["data"].apply(self.get_plain_text_time)
+            df_temp.drop(columns="data", inplace=True)
+            df.update(df_temp)
 
         # return df
         return df
