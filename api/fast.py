@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import joblib
 
-from ephesus.nlp import TrainerNGAP
+from ephesus.nlp import TrainerLocation, TrainerNGAP
 from ephesus.timedate import Date, Time
 
 app = FastAPI()
@@ -65,6 +65,23 @@ def treatment(sentence):
     }
     return result
 
+@app.get("/location")
+def location(sentence):
+    '''
+    return Cabinet or Domicile as the care location
+    '''
+    # initiate path to pre-trained models
+    path_spacy = "../models/model_v2/model-best"
+    path_loc = "../model_location.joblib"
+    # create a new trainer for precitions
+    trainer = TrainerLocation(train_on_full_set = True, path_spacy=path_spacy, path_loc=path_loc)
+    df = trainer.predict_location(sentence=sentence)
+    result = {
+        "location" : str(df["location"][0]),
+        "sigmoid" : float(df["sigmoid"][0])
+    }
+    return result
+
 @app.get("/date")
 def date(sentence):
     '''
@@ -99,3 +116,4 @@ if __name__ == "__main__":
     print(treatment("Prise de sang"))
     print(date("2 septembre 2022"))
     print(time("18h45"))
+    print(location("chez le patient"))

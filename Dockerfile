@@ -5,6 +5,7 @@ COPY ./ephesus /ephesus
 COPY ./requirements.txt /requirements.txt
 COPY ./models /models
 COPY ./model_ngap.joblib /model_ngap.joblib
+COPY ./model_location.joblib /model_location.joblib
 
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
