@@ -383,7 +383,7 @@ class TrainerLocation():
 
         if self.train_on_full_set:
             # save the model to a joblib file
-            joblib.dump((self.model, self.tokenizer, self.ycols), self.path_ngap)
+            joblib.dump((self.model, self.tokenizer), self.path_ngap)
 
 
     def eval_ngap(self):
@@ -401,7 +401,7 @@ class TrainerLocation():
         score = self.model.evaluate(X_test_pad, self.y_test)
         return score[1]
 
-    def predict_ngap(self, sentence=""):
+    def predict_location(self, sentence=""):
         '''
         Use the model to make predictions
         sentence is one or multiple treatments
@@ -410,7 +410,7 @@ class TrainerLocation():
         if self.train_on_full_set:
             # load the model from the joblib file
             try:
-                (self.model, self.tokenizer, self.ycols) = joblib.load(self.path_ngap)
+                (self.model, self.tokenizer) = joblib.load(self.path_loc)
             except FileNotFoundError:
                 return pd.DataFrame()
             # preprocessing
@@ -436,17 +436,14 @@ class TrainerLocation():
 
         # reshape y_pred to a more readable format
         df_pred = pd.DataFrame(y_pred)
-        df_pred.columns = self.ycols
-        df_pred = pd.DataFrame(df_pred.stack()).reset_index()
-        df_pred = df_pred.sort_values(0).groupby("level_0").last()
 
         if self.train_on_full_set:
             df_pred_clean = pd.DataFrame(X).reset_index().drop(columns="index")
         else:
             df_pred_clean = pd.DataFrame(self.X_test).reset_index().drop(columns="index")
 
-        df_pred_clean["NGAP"] = df_pred["level_1"]
-        df_pred_clean["softmax"] = df_pred[0]
+        df_pred_clean["location"] = df_pred[...]
+        df_pred_clean["sigmoid"] = df_pred[0]
         return df_pred_clean
 
 if __name__ == '__main__':
