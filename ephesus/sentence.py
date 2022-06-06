@@ -1,4 +1,5 @@
 import json
+from regex import E
 from sklearn.model_selection import train_test_split
 import spacy
 from spacy.tokens import DocBin
@@ -108,23 +109,12 @@ def return_label(sentence, model):
     return liste
 
 
-### Commands to train model --> to lauch in config file###
-
-###to fill default parameters
-'''
-python -m spacy init fill-config base_config.cfg config.cfg
-'''
-###train the model
-'''
-python -m spacy train config.cfg --output ../ --paths.train ../../raw_data/training_data.spacy --paths.dev ../../raw_da
-ta/training_data.spacy
-'''
-
-###evaluate model
-'''
-python -m spacy evaluate ../model_v3/model-best ../../raw_data/test_set.spacy -dp ../model_small/EVAL -o ../model_small/EVAL/model_small.json
-'''
-
-
 if __name__ == '__main__':
-    print("Ca marhce po")
+    file_name = "PROJECT_EPHESUS-labeling_V02"
+    data = extract_json(file_name)
+    my_dico = tune_data(data)
+    train_set, test_set = create_training_set(my_dico)
+    #Create training data.spacy
+    create_set(train_set, "train_set_V00.spacy")
+    #Create test data.spacy
+    create_set(test_set, "test_set_V00.spacy")
