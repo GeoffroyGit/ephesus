@@ -10,5 +10,6 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 RUN python /api/install_nltk_punkt.py
+RUN cp -r /root/nltk_data /home/
 
 CMD uvicorn api.fast:app --host 0.0.0.0 --port $PORT
