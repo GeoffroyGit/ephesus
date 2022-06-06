@@ -255,7 +255,7 @@ class TrainerLocation():
         '''
         self.train_on_full_set = train_on_full_set
         self.path_spacy = path_spacy
-        self.path_ngap = path_ngap
+        self.path_loc = path_loc
         self.X = None # pandas DataFrame with one column named "X"
         self.y = None # pandas DataFrame with one column named "y"
         self.tokenizer = None
@@ -298,6 +298,9 @@ class TrainerLocation():
         # merge with df_stack
         df = df_stack.merge(df_targets, how="left", on="filename_cleaned")
         df = df[["location", "CareLocation_1"]].rename(columns={"location" : "X", "CareLocation_1" : "y"})
+
+        # drop NaN
+        df = df[df["y"].notna()]
 
         # store the training data into self.X and self.y
         self.X = df[["X"]]
@@ -345,9 +348,9 @@ class TrainerLocation():
         # preprocess y
         y = self.y.copy()
         def cabinet_or_domicile(text):
-            for loc in ["cabinet", "location"]:
+            for i, loc in enumerate(["cabinet", "domicile"]):
                 if text.lower() == loc:
-                    return loc
+                    return i
             return None
         y["y"] = y["y"].apply(cabinet_or_domicile)
 
@@ -383,10 +386,10 @@ class TrainerLocation():
 
         if self.train_on_full_set:
             # save the model to a joblib file
-            joblib.dump((self.model, self.tokenizer), self.path_ngap)
+            joblib.dump((self.model, self.tokenizer), self.path_loc)
 
 
-    def eval_ngap(self):
+    def eval_location(self):
         '''
         evaluate the model
         '''
@@ -442,53 +445,97 @@ class TrainerLocation():
         else:
             df_pred_clean = pd.DataFrame(self.X_test).reset_index().drop(columns="index")
 
-        df_pred_clean["location"] = df_pred[...]
+        df_pred_clean["location"] = df_pred[0].apply(lambda x: "Cabinet" if x < 0.5 else "Domicile")
         df_pred_clean["sigmoid"] = df_pred[0]
+
         return df_pred_clean
 
 if __name__ == '__main__':
 
     path_spacy = "../models/model_v2/model-best"
     path_ngap = "../model_ngap.joblib"
+    path_loc = "../model_location.joblib"
 
     test_evaluation = True
     test_predict = True
     test_load_model = True
+    test_ngap = False
+    test_location = True
 
-    if test_evaluation:
-        # create trainer for evaluation
-        print("Create trainer for evaluation:")
-        trainer = TrainerNGAP(train_on_full_set = False, path_spacy=path_spacy)
-        print("Load data:")
-        trainer.get_training_data()
-        print("Train:")
-        trainer.train_ngap()
-        print("Eval:")
-        score = trainer.eval_ngap()
-        print(f"model evaluation: {score}")
-        print("Predict:")
-        print(trainer.predict_ngap())
-    if test_predict:
-        # create trainer for precitions
-        print("Create trainer for predictions:")
-        trainer = TrainerNGAP(train_on_full_set = True, path_spacy=path_spacy, path_ngap=path_ngap)
-        print("Load data:")
-        trainer.get_training_data()
-        print("Train:")
-        trainer.train_ngap()
-        print("Predict:")
-        sentence = "Prise de sang"
-        print(trainer.predict_ngap(sentence=sentence))
-    if test_predict or test_load_model:
-        # create a new trainer for precitions
-        print("Create new trainer for predictions:")
-        trainer = TrainerNGAP(train_on_full_set = True, path_spacy=path_spacy, path_ngap=path_ngap)
-        print("Predict one treatment:")
-        sentence = "Grand pansement"
-        print(trainer.predict_ngap(sentence=sentence))
-        print("Predict multiple treatments at once:")
-        sentence = pd.DataFrame({"X" : ["Grand pansement",
-                                        "Prise de sang",
-                                        "Vaccin Covid19",
-                                        "Test PCR"]})
-        print(trainer.predict_ngap(sentence=sentence))
+    if test_ngap:
+        if test_evaluation:
+            # create trainer for evaluation
+            print("Create trainer for evaluation:")
+            trainer = TrainerNGAP(train_on_full_set = False, path_spacy=path_spacy)
+            print("Load data:")
+            trainer.get_training_data()
+            print("Train:")
+            trainer.train_ngap()
+            print("Eval:")
+            score = trainer.eval_ngap()
+            print(f"model evaluation: {score}")
+            print("Predict:")
+            print(trainer.predict_ngap())
+        if test_predict:
+            # create trainer for precitions
+            print("Create trainer for predictions:")
+            trainer = TrainerNGAP(train_on_full_set = True, path_spacy=path_spacy, path_ngap=path_ngap)
+            print("Load data:")
+            trainer.get_training_data()
+            print("Train:")
+            trainer.train_ngap()
+            print("Predict:")
+            sentence = "Prise de sang"
+            print(trainer.predict_ngap(sentence=sentence))
+        if test_predict or test_load_model:
+            # create a new trainer for precitions
+            print("Create new trainer for predictions:")
+            trainer = TrainerNGAP(train_on_full_set = True, path_spacy=path_spacy, path_ngap=path_ngap)
+            print("Predict one treatment:")
+            sentence = "Grand pansement"
+            print(trainer.predict_ngap(sentence=sentence))
+            print("Predict multiple treatments at once:")
+            sentence = pd.DataFrame({"X" : ["Grand pansement",
+                                            "Prise de sang",
+                                            "Vaccin Covid19",
+                                            "Test PCR"]})
+            print(trainer.predict_ngap(sentence=sentence))
+
+    if test_location:
+        if test_evaluation:
+            # create trainer for evaluation
+            print("Create trainer for evaluation:")
+            trainer = TrainerLocation(train_on_full_set = False, path_spacy=path_spacy)
+            print("Load data:")
+            trainer.get_training_data()
+            print("Train:")
+            trainer.train_location()
+            print("Eval:")
+            score = trainer.eval_location()
+            print(f"model evaluation: {score}")
+            print("Predict:")
+            print(trainer.predict_location())
+        if test_predict:
+            # create trainer for precitions
+            print("Create trainer for predictions:")
+            trainer = TrainerLocation(train_on_full_set = True, path_spacy=path_spacy, path_loc=path_loc)
+            print("Load data:")
+            trainer.get_training_data()
+            print("Train:")
+            trainer.train_location()
+            print("Predict:")
+            sentence = "au cabinet"
+            print(trainer.predict_location(sentence=sentence))
+        if test_predict or test_load_model:
+            # create a new trainer for precitions
+            print("Create new trainer for predictions:")
+            trainer = TrainerLocation(train_on_full_set = True, path_spacy=path_spacy, path_loc=path_loc)
+            print("Predict one treatment:")
+            sentence = "au cabinet"
+            print(trainer.predict_location(sentence=sentence))
+            print("Predict multiple locations at once:")
+            sentence = pd.DataFrame({"X" : ["au domicile",
+                                            "au cabinet",
+                                            "chez madame Monique",
+                                            "chez le patient"]})
+            print(trainer.predict_location(sentence=sentence))
