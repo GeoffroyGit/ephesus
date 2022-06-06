@@ -65,9 +65,9 @@ def create_training_set(dico, size=0.8):
     test_set = {'classes':dico['classes'], 'annotations':test}
     return train_set, test_set
 
-def create_training_data(train_set, filename):
+def create_set(train_set, filename):
     '''
-    create training data and saved in raw_data
+    create training/testing data and saved in raw_data
     please specifiy name which should ends with ".spacy"
     '''
     nlp = spacy.blank("fr")
@@ -119,5 +119,12 @@ python -m spacy init fill-config base_config.cfg config.cfg
 python -m spacy train config.cfg --output ../ --paths.train ../../raw_data/training_data.spacy --paths.dev ../../raw_da
 ta/training_data.spacy
 '''
+
+###evaluate model
+'''
+python -m spacy evaluate ../model_v3/model-best ../../raw_data/test_set.spacy -dp ../model_small/EVAL -o ../model_small/EVAL/model_small.json
+'''
+
+
 if __name__ == '__main__':
     print("Ca marhce po")
