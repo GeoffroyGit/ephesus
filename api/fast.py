@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import joblib
+import base64
 
 from ephesus.nlp import TrainerLocation, TrainerNGAP
 from ephesus.timedate import Date, Time
@@ -51,10 +52,12 @@ def predict(sentence):
     # load the spacy model
     model = load_model(path_spacy)
     # run the model predictions on the sentence
-    doc = model(sentence)
     labels = model.get_pipe("ner").labels
+    doc = model(sentence)
+    doc_bytes = base64.b64encode(doc.to_bytes()).decode()
+    vocab_bytes = base64.b64encode(model.vocab.to_bytes()).decode()
     # return prediction with labels
-    return {"labels" : labels, "doc" : doc.to_json()}
+    return {"labels" : labels, "vocab" : vocab_bytes, "doc" : doc_bytes}
 
 @app.get("/treatment")
 def treatment(sentence):
@@ -125,3 +128,4 @@ if __name__ == "__main__":
     print(date("2 septembre 2022"))
     print(time("18h45"))
     print(location("chez le patient"))
+    #print(predict("Prise de sang au cabinet le 2 septembre 2020"))
