@@ -42,17 +42,6 @@ def test(sentence):
         ("18h", "heure", "#afa"),
         "."
     )
-
-    # load the pre-trained model
-    #try:
-    #    model = joblib.load("model.joblib")
-    #except FileNotFoundError:
-    #    return {"error" : "oops"}
-
-    # compute prediction
-    #y_pred = model.predict(X_pred)
-
-    # return predicted
     return {"entities" : dummy_sentence}
 
 @app.get("/predict")
@@ -71,8 +60,8 @@ def treatment(sentence):
     trainer = TrainerNGAP(train_on_full_set = True, path_spacy=path_spacy, path_ngap=path_ngap)
     df = trainer.predict_ngap(sentence=sentence)
     result = {
-        "NGAP" : df["NGAP"][0],
-        "softmax" : df["softmax"][0]
+        "NGAP" : str(df["NGAP"][0]),
+        "softmax" : float(df["softmax"][0])
     }
     return result
 
@@ -84,11 +73,11 @@ def date(sentence):
     test = Date()
     df = test.transform_data(sentence=sentence)
     result = {
-        "day" : df["day"][0],
-        "month" : df["month"][0],
-        "year" : df["year"][0],
-        "day_of_week" : df["day_of_week"][0],
-        "day_from_today" : df["day_from_today"][0]
+        "day" : int(df["day"][0]),
+        "month" : int(df["month"][0]),
+        "year" : int(df["year"][0]),
+        "day_of_week" : int(df["day_of_week"][0]),
+        "day_from_today" : int(df["day_from_today"][0])
     }
     return result
 
@@ -100,8 +89,8 @@ def time(sentence):
     test = Time()
     df = test.transform_data(sentence=sentence)
     result = {
-        "hour" : df["time"][0][0],
-        "minute" : df["time"][0][1]
+        "hour" : int(df["time"][0][0]),
+        "minute" : int(df["time"][0][1])
     }
     return result
 
