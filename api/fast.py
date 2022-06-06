@@ -5,6 +5,7 @@ import joblib
 
 from ephesus.nlp import TrainerLocation, TrainerNGAP
 from ephesus.timedate import Date, Time
+from ephesus.sentence import load_model
 
 app = FastAPI()
 
@@ -45,8 +46,15 @@ def test(sentence):
     return {"entities" : dummy_sentence}
 
 @app.get("/predict")
-def predict():
-    return {"greeting": "not coded yet"}
+def predict(sentence):
+    path_spacy = "../models/model_v2/model-best"
+    # load the spacy model
+    model = load_model(path_spacy)
+    # run the model predictions on the sentence
+    doc = model(sentence)
+    labels = model.get_pipe("ner").labels
+    # return prediction with labels
+    return {"labels" : labels, "doc" : doc.to_json()}
 
 @app.get("/treatment")
 def treatment(sentence):
