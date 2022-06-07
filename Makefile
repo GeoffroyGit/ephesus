@@ -77,7 +77,7 @@ docker_push:
 	docker push eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME}
 
 docker_deploy:
-	gcloud run deploy --image eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} --platform managed --region europe-west1
+	gcloud run deploy --image eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} --platform managed --region europe-west1 --memory 4G
 
 #### Train NER with spacy -----------------------------------------------------
 # 1 - Download base config on https://spacy.io/usage/training select only NER

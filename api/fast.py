@@ -2,9 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import joblib
+import base64
 
-from ephesus.nlp import TrainerNGAP
+from ephesus.nlp import TrainerLocation, TrainerNGAP
 from ephesus.timedate import Date, Time
+from ephesus.sentence import load_model
 
 app = FastAPI()
 
@@ -42,22 +44,20 @@ def test(sentence):
         ("18h", "heure", "#afa"),
         "."
     )
-
-    # load the pre-trained model
-    #try:
-    #    model = joblib.load("model.joblib")
-    #except FileNotFoundError:
-    #    return {"error" : "oops"}
-
-    # compute prediction
-    #y_pred = model.predict(X_pred)
-
-    # return predicted
     return {"entities" : dummy_sentence}
 
 @app.get("/predict")
-def predict():
-    return {"greeting": "not coded yet"}
+def predict(sentence):
+    path_spacy = "../models/model_v2/model-best"
+    # load the spacy model
+    model = load_model(path_spacy)
+    # run the model predictions on the sentence
+    labels = model.get_pipe("ner").labels
+    doc = model(sentence)
+    doc_bytes = base64.b64encode(doc.to_bytes()).decode()
+    vocab_bytes = base64.b64encode(model.vocab.to_bytes()).decode()
+    # return prediction with labels
+    return {"labels" : labels, "vocab" : vocab_bytes, "doc" : doc_bytes}
 
 @app.get("/treatment")
 def treatment(sentence):
@@ -71,8 +71,25 @@ def treatment(sentence):
     trainer = TrainerNGAP(train_on_full_set = True, path_spacy=path_spacy, path_ngap=path_ngap)
     df = trainer.predict_ngap(sentence=sentence)
     result = {
-        "NGAP" : df["NGAP"][0],
-        "softmax" : df["softmax"][0]
+        "NGAP" : str(df["NGAP"][0]),
+        "softmax" : float(df["softmax"][0])
+    }
+    return result
+
+@app.get("/location")
+def location(sentence):
+    '''
+    return Cabinet or Domicile as the care location
+    '''
+    # initiate path to pre-trained models
+    path_spacy = "../models/model_v2/model-best"
+    path_loc = "../model_location.joblib"
+    # create a new trainer for precitions
+    trainer = TrainerLocation(train_on_full_set = True, path_spacy=path_spacy, path_loc=path_loc)
+    df = trainer.predict_location(sentence=sentence)
+    result = {
+        "location" : str(df["location"][0]),
+        "sigmoid" : float(df["sigmoid"][0])
     }
     return result
 
@@ -84,11 +101,11 @@ def date(sentence):
     test = Date()
     df = test.transform_data(sentence=sentence)
     result = {
-        "day" : df["day"][0],
-        "month" : df["month"][0],
-        "year" : df["year"][0],
-        "day_of_week" : df["day_of_week"][0],
-        "day_from_today" : df["day_from_today"][0]
+        "day" : int(df["day"][0]),
+        "month" : int(df["month"][0]),
+        "year" : int(df["year"][0]),
+        "day_of_week" : int(df["day_of_week"][0]),
+        "day_from_today" : int(df["day_from_today"][0])
     }
     return result
 
@@ -100,8 +117,8 @@ def time(sentence):
     test = Time()
     df = test.transform_data(sentence=sentence)
     result = {
-        "hour" : df["time"][0][0],
-        "minute" : df["time"][0][1]
+        "hour" : int(df["time"][0][0]),
+        "minute" : int(df["time"][0][1])
     }
     return result
 
@@ -110,3 +127,5 @@ if __name__ == "__main__":
     print(treatment("Prise de sang"))
     print(date("2 septembre 2022"))
     print(time("18h45"))
+    print(location("chez le patient"))
+    #print(predict("Prise de sang au cabinet le 2 septembre 2020"))
