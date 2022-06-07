@@ -99,3 +99,4 @@ docker_deploy:
 
 # evaluate_model:
 # 	python -m spacy evaluate ../model_v3/model-best ../../raw_data/test_set.spacy -dp ../model_small/EVAL -o ../model_small/EVAL/model_small.json
+
