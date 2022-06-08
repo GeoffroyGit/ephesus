@@ -397,7 +397,7 @@ if __name__ == '__main__':
 
     test_date = True
     test_time = True
-    test_load_too = False
+    test_load_too = True
 
     if test_date:
         if test_load_too:

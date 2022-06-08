@@ -80,23 +80,5 @@ docker_deploy:
 	gcloud run deploy --image eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} --platform managed --region europe-west1 --memory 4G
 
 #### Train NER with spacy -----------------------------------------------------
-# 1 - Download base config on https://spacy.io/usage/training select only NER
-# 2 - Fill config.cfg with default values
-# 3 - Train model
-# 4 - evaluate
 
-# create_ner_data:
-# 	python ephesus/sentence.py
-
-# # filename of training data
-# TRAINING_DATA = "training_data.spacy"
-
-# fill_config:
-# 	python -m spacy init fill-config base_config.cfg config.cfg
-
-# train_ner:
-# 	python -m spacy train config.cfg --output ../ --paths.train ../../raw_data/${TRAINING_DATA} --paths.dev ../../raw_data/${TRAINING_DATA}
-
-# evaluate_model:
-# 	python -m spacy evaluate ../model_v3/model-best ../../raw_data/test_set.spacy -dp ../model_small/EVAL -o ../model_small/EVAL/model_small.json
-
+# Please see README.md

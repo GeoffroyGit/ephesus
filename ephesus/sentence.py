@@ -115,6 +115,6 @@ if __name__ == '__main__':
     my_dico = tune_data(data)
     train_set, test_set = create_training_set(my_dico)
     #Create training data.spacy
-    create_set(train_set, "train_set_V00.spacy")
+    create_set(train_set, "train_set_v2.spacy")
     #Create test data.spacy
-    create_set(test_set, "test_set_V00.spacy")
+    create_set(test_set, "test_set_v2.spacy")

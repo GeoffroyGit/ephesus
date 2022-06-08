@@ -36,87 +36,192 @@ And here is the corresponding informations we need to extract
 
 Clean the data from stop words and punctuation
 
-## Classification approach
+## Identify groups of words
 
-Identify which part of the memo corresonds to which information
+We identify which part of the memo (which group of words) corresonds to which information
 
-Have models convert each information into the target classes
+For this, we build a Named Entity Recognition model (NER) using the spaCy library
 
-## One-model-to-run-them-all approach
+## Convert each group of word into meaningfull information
 
-Have one model to interpret the whole of the memo
+We build models to convert each information into the target classes using the nltk library
 
-# Demo day
+# Demo
 
-Make a demo prediction from a demo vocal memo
+## Try it yourself
+
+You can play around with our demo [here](https://ephesus-web.herokuapp.com/)
+
+In this demo, we let you try your own sentences and see the results from our models
+
+## Going further
 
 Show our success percentage
 
 Give our feedback on possible improvement points and share the hypotheses we used to build our models
 
-# Startup the project
+# Run our code yourself
 
-The initial setup.
+## Install the Ephesus package
 
-Create virtualenv and install the project:
-```bash
-sudo apt-get install virtualenv python-pip python-dev
-deactivate; virtualenv ~/venv ; source ~/venv/bin/activate ;\
-    pip install pip -U; pip install -r requirements.txt
-```
-
-Unittest test:
-```bash
-make clean install test
-```
-
-Check for ephesus in gitlab.com/{group}.
-If your project is not set please add it:
-
-- Create a new project on `gitlab.com/{group}/ephesus`
-- Then populate it:
+Clone the project:
 
 ```bash
-##   e.g. if group is "{group}" and project_name is "ephesus"
-git remote add origin git@github.com:{group}/ephesus.git
-git push -u origin master
-git push -u origin --tags
+git clone git@github.com:GeoffroyGit/ephesus.git
 ```
 
-Functionnal test with a script:
-
-```bash
-cd
-mkdir tmp
-cd tmp
-ephesus-run
-```
-
-# Install
-
-Go to `https://github.com/{group}/ephesus` to see the project, manage issues,
-setup you ssh public key, ...
+We recommend you to create a fresh virtual environment
 
 Create a python3 virtualenv and activate it:
 
 ```bash
-sudo apt-get install virtualenv python-pip python-dev
-deactivate; virtualenv -ppython3 ~/venv ; source ~/venv/bin/activate
-```
-
-Clone the project and install it:
-
-```bash
-git clone git@github.com:{group}/ephesus.git
 cd ephesus
-pip install -r requirements.txt
-make clean install test                # install and test
+pyenv virtualenv ephesus
+pyenv local ephesus
 ```
-Functionnal test with a script:
+
+Upgrade pip if needed:
 
 ```bash
-cd
-mkdir tmp
-cd tmp
-ephesus-run
+pip install --upgrade pip
 ```
+
+Install the package:
+
+```bash
+pip install -r requirements.txt
+pip install -e .
+```
+
+## Run the API locally
+
+Run the API on your machine:
+
+```bash
+make run_api
+```
+
+## Run the API in a Docker container in the cloud
+
+Build the docker image:
+
+```bash
+make docker_build
+```
+
+Run a container on your machine:
+
+```bash
+make docker_run
+```
+
+Stop the container running on your machine
+
+```bash
+docker ps
+docker stop <container id>
+```
+
+Push the image to Google Cloud Platform (GCP):
+
+```bash
+make docker_push
+```
+
+Run a container on GCP:
+
+```bash
+make docker_deploy
+```
+
+# Train the models yourself
+
+## Training data
+
+You'll need similar training data in order to train the models
+
+We're sorry we can't share our data
+
+## Train the NER with spaCy
+
+### Create folders
+
+```bash
+mkdir models
+mkdir models/config
+```
+
+### Download config
+
+Download base config on https://spacy.io/usage/training (select only French and NER) and save it to models/config/base_config.cfg
+
+![spacy config](/readme_pictures/spacy_config.png)
+
+### Fill config
+
+Fill config file with default values:
+
+```bash
+cd models/config/
+python -m spacy init fill-config base_config.cfg config.cfg
+```
+
+### Create data sets
+
+Create train set and test set for the model:
+
+```bash
+cd ephesus/
+python sentence.py
+```
+
+Create variable to host training data file name (put the same names as in ephesus/sentence.py):
+
+```bash
+export EPHESUS_TRAINING_DATA = "train_set_v2.spacy"
+export EPHESUS_TEST_DATA = "test_set_v2.spacy"
+```
+
+### Train
+
+Train the model:
+
+```bash
+cd models/
+mkdir model_v2
+cd models/config/
+python -m spacy train config.cfg --output ../model_v2 --paths.train ../../raw_data/$EPHESUS_TRAINING_DATA --paths.dev ../../raw_data/$EPHESUS_TRAINING_DATA
+```
+
+### Evaluate
+
+Evaluate the model:
+
+```bash
+cd models/model_v2/
+mkdir eval
+cd models/config/
+python -m spacy evaluate ../model_v2/model-best ../../raw_data/$EPHESUS_TEST_DATA -dp ../model_v2/EVAL -o ../model_v2/EVAL/model_v2_scores.json
+```
+
+## Train the RNN with nltk
+
+Train and evaluate the models for treatment and location:
+
+```bash
+cd ephesus/
+python nlp.py
+```
+
+## Check other objects
+
+Check the classes for date and time:
+
+```bash
+cd ephesus/
+python timedate.py
+```
+
+# You're done
+
+Congratulations!

@@ -459,7 +459,7 @@ if __name__ == '__main__':
     test_evaluation = True
     test_predict = True
     test_load_model = True
-    test_ngap = False
+    test_ngap = True
     test_location = True
 
     if test_ngap:
