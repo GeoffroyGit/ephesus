@@ -232,7 +232,7 @@ def all(sentence):
             hour = int(df["time"][0][0])
             minute = int(df["time"][0][1])
             # add hour and minute to JSON
-            result_dict["Voice"]["Treatments"][treatment_count]["TreatmentCares"]["Hour"] = f"{hour}:{minute}"
+            result_dict["Voice"]["Treatments"][treatment_count]["TreatmentCares"]["Hour"] = f"{hour:02}:{minute:02}:00"
         elif entity[1] == known_entities[3]: # Date
             # create new item in list of treatments if needed
             if result_dict["Voice"]["Treatments"][treatment_count]["CareBeginDateDetected"]:
