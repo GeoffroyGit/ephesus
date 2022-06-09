@@ -1,4 +1,3 @@
-from tkinter.messagebox import NO
 from ephesus.data import get_data_csv
 from ephesus.sentence import load_model, return_label
 from ephesus.sentence import return_label, load_model
