@@ -13,7 +13,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 from ephesus.sentence import load_model, return_label
 from ephesus.data import get_data_json, get_data_targets_json
-
+from ephesus.path import PATH_SPACY, PATH_NGAP, PATH_LOC
 
 class TrainerNGAP():
     def __init__(self,
@@ -452,9 +452,9 @@ class TrainerLocation():
 
 if __name__ == '__main__':
 
-    path_spacy = "../models/model_v2/model-best"
-    path_ngap = "../model_ngap.joblib"
-    path_loc = "../model_location.joblib"
+    path_spacy = PATH_SPACY
+    path_ngap = PATH_NGAP
+    path_loc = PATH_LOC
 
     test_evaluation = True
     test_predict = True

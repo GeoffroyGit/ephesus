@@ -7,6 +7,8 @@ import re
 import datetime
 from ephesus.timedate import Date
 
+from ephesus.path import PATH_SPACY
+
 class Duration():
     def __init__(self, path_spacy=""):
         '''
@@ -198,7 +200,7 @@ class Duration():
 
         return df
     if __name__ == '__main__':
-        path_spacy = "../models/model_full/model-best"
+        path_spacy = PATH_SPACY
         print("creating data...")
         test = Duration(path_spacy=path_spacy)
         df = test.get_data()

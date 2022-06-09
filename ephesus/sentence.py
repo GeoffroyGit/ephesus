@@ -6,6 +6,7 @@ from spacy.tokens import DocBin
 from spacy.util import filter_spans
 from tqdm import tqdm
 
+from ephesus.path import NAME_TRAIN_SET, NAME_TEST_SET
 
 
 def extract_json(file_name):
@@ -115,6 +116,6 @@ if __name__ == '__main__':
     my_dico = tune_data(data)
     train_set, test_set = create_training_set(my_dico)
     #Create training data.spacy
-    create_set(train_set, "train_set_v2.spacy")
+    create_set(train_set, NAME_TRAIN_SET)
     #Create test data.spacy
-    create_set(test_set, "test_set_v2.spacy")
+    create_set(test_set, NAME_TEST_SET)
