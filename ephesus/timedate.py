@@ -6,7 +6,7 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from ephesus.sentence import load_model, return_label
 from ephesus.data import get_data_json, get_data_targets_json
-
+from ephesus.path import PATH_SPACY
 
 class Date():
     def __init__(self, path_spacy=""):
@@ -401,7 +401,7 @@ if __name__ == '__main__':
 
     if test_date:
         if test_load_too:
-            path_spacy = "../models/model_v2/model-best"
+            path_spacy = PATH_SPACY
             test = Date(path_spacy=path_spacy)
             test.get_data()
             print(test.transform_data())
@@ -422,7 +422,7 @@ if __name__ == '__main__':
 
     if test_time:
         if test_load_too:
-            path_spacy = "../models/model_v2/model-best"
+            path_spacy = PATH_SPACY
             test = Time(path_spacy=path_spacy)
             test.get_data()
             print(test.transform_data())

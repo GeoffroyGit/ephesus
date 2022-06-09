@@ -12,6 +12,8 @@ from ephesus.duration import Duration
 
 from copy import deepcopy
 
+from ephesus.path import PATH_SPACY, PATH_NGAP, PATH_LOC
+
 app = FastAPI()
 
 app.add_middleware(
@@ -52,7 +54,7 @@ def test(sentence):
 
 @app.get("/predict")
 def predict(sentence):
-    path_spacy = "../models/model_v2/model-best"
+    path_spacy = PATH_SPACY
     # load the spacy model
     model = load_model(path_spacy)
     # run the model predictions on the sentence
@@ -69,8 +71,8 @@ def treatment(sentence):
     return NGAP code corresponding to the treatment in sentence
     '''
     # initiate path to pre-trained models
-    path_spacy = "../models/model_v2/model-best"
-    path_ngap = "../model_ngap.joblib"
+    path_spacy = PATH_SPACY
+    path_ngap = PATH_NGAP
     # create a new trainer for precitions
     trainer = TrainerNGAP(train_on_full_set = True, path_spacy=path_spacy, path_ngap=path_ngap)
     df = trainer.predict_ngap(sentence=sentence)
@@ -86,8 +88,8 @@ def location(sentence):
     return Cabinet or Domicile as the care location
     '''
     # initiate path to pre-trained models
-    path_spacy = "../models/model_v2/model-best"
-    path_loc = "../model_location.joblib"
+    path_spacy = PATH_SPACY
+    path_loc = PATH_LOC
     # create a new trainer for precitions
     trainer = TrainerLocation(train_on_full_set = True, path_spacy=path_spacy, path_loc=path_loc)
     df = trainer.predict_location(sentence=sentence)
@@ -151,9 +153,9 @@ def all(sentence):
     return a JSON with all the info we can extract from sentence
     '''
     # define path
-    path_spacy = "../models/model_v2/model-best"
-    path_ngap = "../model_ngap.joblib"
-    path_loc = "../model_location.joblib"
+    path_spacy = PATH_SPACY
+    path_ngap = PATH_NGAP
+    path_loc = PATH_LOC
     # initiate the JSON to be returned
     empty_dict = {
         "TreatmentCares" : {
