@@ -1,3 +1,4 @@
+from tkinter.messagebox import NO
 from ephesus.data import get_data_csv
 from ephesus.sentence import load_model, return_label
 from ephesus.sentence import return_label, load_model
@@ -18,6 +19,20 @@ class Duration():
         self.df = None
         self.df_exists = False
         self.liste_mois = '(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)'
+        self.dic_months = {
+            1:"janvier",
+            2:"février",
+            3:"mars",
+            4:"avril",
+            5:"mai",
+            6:"juin",
+            7:"juillet",
+            8:"août",
+            9:"septembre",
+            10:"octobre",
+            11:"novembre",
+            12:"décembre"
+        }
 
     def get_data(self):
         '''
@@ -100,20 +115,6 @@ class Duration():
         Careduration by default returned as Days
         by default return a dic but can return a DataFrame if df = True
         '''
-        dic_months = {
-            1:"janvier",
-            2:"février",
-            3:"mars",
-            4:"avril",
-            5:"mai",
-            6:"juin",
-            7:"juillet",
-            8:"août",
-            9:"septembre",
-            10:"octobre",
-            11:"novembre",
-            12:"décembre"
-        }
         if sentence == None:
             return np.nan
         dico = {}
@@ -128,7 +129,7 @@ class Duration():
             if df == True:
                 return pd.DataFrame.from_dict(dico)
             return dico
-        end_date_text = f"{df_end_date.iloc[0,1]} {dic_months[df_end_date.iloc[0,2]]}"
+        end_date_text = f"{df_end_date.iloc[0,1]} {self.dic_months[df_end_date.iloc[0,2]]}"
         if CareBeginDate == None or CareBeginDate[0] == 99 or CareBeginDate[1] == 99:
             dico["CareDuration"] = [np.nan]
             dico["CareDurationType"] = [np.nan]
@@ -148,6 +149,44 @@ class Duration():
         # by default, CareDurationType is Days
         dico["CareDurationType"] = ["Days"]
         dico["CareEnd"] = [end_date_text]
+        if df == True:
+            return pd.DataFrame.from_dict(dico)
+        return dico
+
+    def implicit_duration_2(self, sentence=None, df=False):
+        '''
+        get duration for sentence like
+        du 6 juin au 17 juin
+        du lundi 6 juin 2022 au 15 juin ...
+        '''
+        regex  = "(?<=du\s)\w*?\s?(\d{1,2})\s("+self.liste_mois+\
+            ")?\s?(\d{1,4}\s)?au\s\w*?\s?(\d{1,2}\s"+self.liste_mois+")"
+        test = re.search(regex, sentence)
+        if test is None:
+            return None
+        dico = {}
+        start_date = re.search("(?<=du\s)\w*?\s?(\d{1,2})\s("+self.liste_mois+\
+            ")?\s?", sentence).group()
+        end_date = re.search('(?<=au\s)\w*?\s?(\d{1,2}\s'+self.liste_mois+')', sentence).group()
+        # use class Date()
+        start_date_df = Date().transform_data(start_date)
+        end_date_df = Date().transform_data(end_date)
+        # convert to datetme
+        end_date_datetime = datetime.date(2022,end_date_df.iloc[0,2],end_date_df.iloc[0,1])
+        if start_date_df.iloc[0,2] == 99:
+            start_month = end_date_df.iloc[0,2]
+        else:
+            start_month = start_date_df.iloc[0,2]
+        start_date_datetime = datetime.date(2022,start_month,start_date_df.iloc[0,1])
+        #get diff
+        diff = (end_date_datetime - start_date_datetime).days
+        if diff <= 0:
+            dico["CareDuration"] = [np.nan]
+        else:
+            dico["CareDuration"] = [diff]
+        # by default, CareDurationType is Days
+        dico["CareDurationType"] = ["Days"]
+        dico["CareEnd"] = [end_date]
         if df == True:
             return pd.DataFrame.from_dict(dico)
         return dico
@@ -178,6 +217,10 @@ class Duration():
             return self.explicit_duration(sentence,df=df)
         if re.search("jusqu\'au\s", sentence) is not None:
             return self.implicit_duration_1(sentence, CareBeginDate=CareBeginDate, df=df)
+        regex  = "(?<=du\s)\w*?\s?(\d{1,2})\s("+self.liste_mois+\
+            ")?\s?(\d{1,4}\s)?au\s\w*?\s?(\d{1,2}\s"+self.liste_mois+")"
+        if re.search(regex, sentence) is not None:
+            return self.implicit_duration_2(sentence, df=df)
         else:
             return {"CareDuration": [np.nan],
                     "CareDurationType": [np.nan],
@@ -197,8 +240,8 @@ class Duration():
         df['CareDurationType'] =  df["temp"].apply(lambda x: x["CareDurationType"][0])
         df['CareEnd'] =  df["temp"].apply(lambda x: x["CareEnd"][0])
         df.drop(columns=["temp"], inplace=True)
-
         return df
+
     if __name__ == '__main__':
         path_spacy = PATH_SPACY
         print("creating data...")
