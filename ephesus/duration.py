@@ -66,6 +66,7 @@ class Duration():
         return CareDuration and CareDurationType given a sentence. Ex:
         Pendant 3 jours
         Pour une durée de 3 semaines..
+        by default return a dic but can return a DataFrame if df = True
         '''
         if sentence == None:
             return np.nan
@@ -76,10 +77,13 @@ class Duration():
         x = x.group().split()
         care_duration = x[0]
         care_duration_type = x[1]
+        # format
         care_duration_type = care_duration_type.replace("jours", "Days")
         care_duration_type = care_duration_type.replace("mois", "Months")
         care_duration_type = care_duration_type.replace("semaines", "Weeks")
         care_duration_type = care_duration_type.replace("an", "Year")
+
+        # preparing output
         dico["CareDuration"] = [care_duration]
         dico["CareDurationType"] = [care_duration_type]
         dico["CareEnd"] = [np.nan]
@@ -92,6 +96,7 @@ class Duration():
         return full duration if CareBeginDate not None or return all dateframe
         CareBeginDate is a tuple(month,day)
         Careduration by default returned as Days
+        by default return a dic but can return a DataFrame if df = True
         '''
         dic_months = {
             1:"janvier",
@@ -156,9 +161,14 @@ class Duration():
 
     def get_duration(self, sentence=None, CareBeginDate=None, df=False):
         '''
+        Concatenation of function returnin duration depending on formulation
+        by default return a dic but can return a DataFrame if df = True
         '''
         if sentence == None:
-            return None
+            return {"CareDuration": [np.nan],
+                    "CareDurationType": [np.nan],
+                    "CareEnd": [np.nan]
+                    }
         sentence = self.replace_un_une(sentence)
         sentence = sentence.replace('premier', '1')
         sentence = re.sub(' +', ' ', sentence).lower()
@@ -166,14 +176,31 @@ class Duration():
             return self.explicit_duration(sentence,df=df)
         if re.search("jusqu\'au\s", sentence) is not None:
             return self.implicit_duration_1(sentence, CareBeginDate=CareBeginDate, df=df)
+        else:
+            return {"CareDuration": [np.nan],
+                    "CareDurationType": [np.nan],
+                    "CareEnd": [np.nan]
+                    }
 
     def apply_to_df(self, df):
+        '''
+        Given a DataFrame with 2 cols [Duration, Date] return a new Df with
+        3 news cols [CareDuration,CareDurationType,CareEnd]
+        df.Duration expected as string
+        df.Date expected as list of int [month, days], [99,99] if not found
+        '''
+        df = df.copy()
         df['temp'] = df.Duration.combine(df.Date, func=self.get_duration)
-        return df
+        df['CareDuration'] =  df["temp"].apply(lambda x: x["CareDuration"][0])
+        df['CareDurationType'] =  df["temp"].apply(lambda x: x["CareDurationType"][0])
+        df['CareEnd'] =  df["temp"].apply(lambda x: x["CareEnd"][0])
+        df.drop(columns=["temp"], inplace=True)
 
+        return df
     if __name__ == '__main__':
         path_spacy = "../models/model_full/model-best"
-        print("creating data")
+        print("creating data...")
         test = Duration(path_spacy=path_spacy)
         df = test.get_data()
-        apply_to_df(df)
+        print("getting duration...")
+        print(apply_to_df(df))
