@@ -1,3 +1,4 @@
+from unittest import result
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,6 +8,7 @@ import base64
 from ephesus.nlp import TrainerLocation, TrainerNGAP
 from ephesus.timedate import Date, Time
 from ephesus.sentence import load_model
+from ephesus.duration import Duration
 
 from copy import deepcopy
 
@@ -124,6 +126,25 @@ def time(sentence):
     }
     return result
 
+@app.get("/duration")
+def duration(sentence):
+    '''
+    return duration
+    (not enrished with date information)
+    '''
+    duration = Duration()
+    result = duration.get_duration(sentence=sentence)
+    # remore [np.nan] in result
+    for key, val in result.items():
+        # change from a list on one value to the value itself
+        val = val[0]
+        result[key] = val
+        # if val[0] is a np.nan then replace it with an empty string
+        if type(val) == float:
+            if (not val <= 0) and (not val >= 0):
+                result[key] = ""
+    return result
+
 @app.get("/all")
 def all(sentence):
     '''
@@ -148,6 +169,9 @@ def all(sentence):
         "CareLocationDetected" : "",
         "CareLocation": {},
         "CareDurationDetected" : "",
+        "CareDuration" : "",
+        "CareDurationTypeEnum" : "",
+        "CareDurationEnd" : "",
         "CareFrequencyDetected" : ""
     }
     result_dict = {
@@ -261,6 +285,29 @@ def all(sentence):
                 treatment_count += 1
             # add sentence to JSON
             result_dict["Voice"]["Treatments"][treatment_count]["CareDurationDetected"] = sentence
+            # make prediction
+            duration = Duration()
+            if result_dict["Voice"]["Treatments"][treatment_count]["CareBeginDateDetected"]:
+                # we know the date so we use it to enrich the duration prediction
+                day = result_dict["Voice"]["Treatments"][treatment_count]["CareBeginDate"]["day"]
+                month = result_dict["Voice"]["Treatments"][treatment_count]["CareBeginDate"]["month"]
+                result_duration = duration.get_duration(sentence=sentence, CareBeginDate=[day, month])
+            else:
+                # we don't know the date so we don't enrich the duration prediction
+                result_duration = duration.get_duration(sentence=sentence)
+            # remore [np.nan] in result
+            for key, val in result_duration.items():
+                # change from a list on one value to the value itself
+                val = val[0]
+                result_duration[key] = val
+                # if val[0] is a np.nan then replace it with an empty string
+                if type(val) == float:
+                    if (not val <= 0) and (not val >= 0):
+                        result_duration[key] = ""
+            # add duration to JSON
+            result_dict["Voice"]["Treatments"][treatment_count]["CareDuration"] = result_duration["CareDuration"]
+            result_dict["Voice"]["Treatments"][treatment_count]["CareDurationTypeEnum"] = result_duration["CareDurationType"]
+            result_dict["Voice"]["Treatments"][treatment_count]["CareEnd"] = result_duration["CareEnd"]
         elif entity[1] == known_entities[6]: # Frequency
             # create new item in list of treatments if needed
             if result_dict["Voice"]["Treatments"][treatment_count]["CareFrequencyDetected"]:
@@ -277,5 +324,8 @@ if __name__ == "__main__":
     print(date("2 septembre 2022"))
     print(time("18h45"))
     print(location("chez le patient"))
+    print(duration("pendant 3 jours"))
+    print(duration("jusqu'au 5 septembre"))
     #print(predict("Prise de sang au cabinet le 2 septembre 2020"))
-    print(all("Prise de sang au cabinet le 3 septembre 2020 à 18h35 mais aussi une ami2 à 9h demain et tous les jours"))
+    #print(all("Prise de sang à faire le 5 septembre et jusqu'au 20 septembre"))
+    print(all("Prise de sang au cabinet le 3 septembre 2020 à 18h35 mais aussi une ami2 à 9h demain et tous les jours pendant 3 jours"))
